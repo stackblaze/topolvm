@@ -444,6 +444,17 @@ controller:
     # controller.nodeFinalize.skipped -- Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted.
     skipped: false
 
+  rwx:
+    # controller.rwx.enabled -- Enable the NFS-backed ReadWriteMany flow.
+    # When true, PVCs whose StorageClass carries `topolvm.io/access-mode: rwx` are
+    # reconciled into a per-volume NFS Ganesha server that exports a backing RWO
+    # TopoLVM volume. Requires csi-driver-nfs to be installed in the cluster.
+    enabled: false
+
+    # controller.rwx.ganeshaImage -- Optional override for the Ganesha NFS server image.
+    # Leave empty to use the controller's compiled-in default.
+    ganeshaImage: ""
+
   leaderElection:
     # controller.leaderElection.enabled -- Enable leader election for controller and all sidecars.
     enabled: true

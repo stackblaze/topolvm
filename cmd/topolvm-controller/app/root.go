@@ -49,6 +49,8 @@ var config struct {
 	zapOpts                     zap.Options
 	controllerServerSettings    driver.ControllerServerSettings
 	profilingBindAddress        string
+	enableRWX                   bool
+	rwxGaneshaImage             string
 }
 
 var rootCmd = &cobra.Command{
@@ -91,6 +93,8 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
+	fs.BoolVar(&config.enableRWX, "enable-rwx", false, "Enable the NFS-backed ReadWriteMany flow. Requires csi-driver-nfs in the cluster.")
+	fs.StringVar(&config.rwxGaneshaImage, "rwx-ganesha-image", "", "Container image for the per-volume NFS server. Empty uses the default.")
 
 	driver.QuantityVar(fs, &config.controllerServerSettings.Block,
 		"minimum-allocation-block",

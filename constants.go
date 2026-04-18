@@ -115,3 +115,22 @@ const CreatedbyLabelValue = "topolvm-controller"
 
 // LegacyDeviceDirectory is a directory where TopoLVM Node service creates device files.
 const LegacyDeviceDirectory = "/dev/topolvm"
+
+const (
+	RWXAccessModeParameter          = "topolvm.io/access-mode"
+	RWXAccessModeValue              = "rwx"
+	RWXBackingStorageClassParameter = "topolvm.io/backing-storage-class"
+	RWXFinalizer                    = pluginName + "/rwx"
+	RWXBackingPVCSuffix             = "-rwx-backing"
+	RWXNFSServerSuffix              = "-rwx-nfs"
+	RWXPVSuffix                     = "-rwx-pv"
+	RWXManagedByLabel               = pluginName + "/rwx-managed-by"
+	RWXOwnerPVCNamespaceLabel       = pluginName + "/rwx-pvc-namespace"
+	RWXOwnerPVCNameLabel            = pluginName + "/rwx-pvc-name"
+	DefaultGaneshaImage             = "ghcr.io/nfs-ganesha/nfs-ganesha:6.5"
+	NFSCSIDriverName                = "nfs.csi.k8s.io"
+	RWXSnapshotFinalizer            = pluginName + "/rwx-snapshot"
+	RWXMirrorSnapshotSuffix         = "-rwx-backing"
+	RWXOwnerSnapshotNamespaceLabel  = pluginName + "/rwx-snapshot-namespace"
+	RWXOwnerSnapshotNameLabel       = pluginName + "/rwx-snapshot-name"
+)
