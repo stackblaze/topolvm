@@ -35,6 +35,8 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v16.
 | controller.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
 | controller.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
 | controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
+| controller.rwx.enabled | bool | `false` | Enable the NFS-backed ReadWriteMany flow. When true, PVCs whose StorageClass carries `topolvm.io/access-mode: rwx` are reconciled into a per-volume NFS Ganesha server that exports a backing RWO TopoLVM volume. Requires csi-driver-nfs to be installed in the cluster. |
+| controller.rwx.ganeshaImage | string | `""` | Optional override for the Ganesha NFS server image. Leave empty to use the controller's compiled-in default. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
 | controller.storageCapacityTracking.enabled | bool | `true` | Enable Storage Capacity Tracking for csi-provisioner. |
 | controller.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds. |
