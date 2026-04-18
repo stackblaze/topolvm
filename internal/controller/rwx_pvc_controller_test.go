@@ -57,7 +57,7 @@ var _ = Describe("RWXPersistentVolumeClaimController controller", func() {
 		ns := createNamespace()
 
 		sc := &storagev1.StorageClass{
-			ObjectMeta: metav1.ObjectMeta{Name: "unrelated"},
+			ObjectMeta:  metav1.ObjectMeta{Name: "unrelated"},
 			Provisioner: "other.io",
 			Parameters: map[string]string{
 				topolvm.RWXAccessModeParameter: topolvm.RWXAccessModeValue,
