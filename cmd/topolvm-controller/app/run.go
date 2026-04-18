@@ -119,7 +119,8 @@ func subMain() error {
 	}
 
 	if config.enableRWX {
-		if err := controller.SetupRWXPersistentVolumeClaimReconciler(mgr, client, apiReader, config.rwxGaneshaImage); err != nil {
+		err := controller.SetupRWXPersistentVolumeClaimReconciler(mgr, client, apiReader, config.rwxGaneshaImage)
+		if err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "RWXPersistentVolumeClaim")
 			return err
 		}

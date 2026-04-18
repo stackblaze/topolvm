@@ -6,7 +6,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func SetupRWXPersistentVolumeClaimReconciler(mgr ctrl.Manager, c client.Client, apiReader client.Reader, ganeshaImage string) error {
+func SetupRWXPersistentVolumeClaimReconciler(
+	mgr ctrl.Manager,
+	c client.Client,
+	apiReader client.Reader,
+	ganeshaImage string,
+) error {
 	reconciler := internalController.NewRWXPersistentVolumeClaimReconciler(c, apiReader, ganeshaImage)
 	return reconciler.SetupWithManager(mgr)
 }
