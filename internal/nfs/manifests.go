@@ -31,6 +31,10 @@ func ServerName(userPVCName string) string {
 	return userPVCName + topolvm.RWXNFSServerSuffix
 }
 
+func ConfigMapName(userPVCName string) string {
+	return userPVCName + topolvm.RWXNFSServerSuffix + "-config"
+}
+
 func PVName(userPVCNamespace, userPVCName string) string {
 	return fmt.Sprintf("%s-%s%s", userPVCNamespace, userPVCName, topolvm.RWXPVSuffix)
 }
@@ -41,6 +45,41 @@ func commonLabels(cfg Config) map[string]string {
 		topolvm.RWXManagedByLabel:         "topolvm-rwx",
 		topolvm.RWXOwnerPVCNamespaceLabel: cfg.UserPVCNamespace,
 		topolvm.RWXOwnerPVCNameLabel:      cfg.UserPVCName,
+	}
+}
+
+const ganeshaConfig = `NFS_CORE_PARAM {
+    Protocols = 4;
+    NFS_Port = 2049;
+}
+
+NFSv4 {
+    Grace_Period = 10;
+}
+
+EXPORT {
+    Export_Id = 1;
+    Path = /export;
+    Pseudo = /export;
+    Access_Type = RW;
+    Squash = No_Root_Squash;
+    SecType = sys;
+    Protocols = 4;
+    Transports = TCP;
+    FSAL { Name = VFS; }
+}
+`
+
+func ConfigMap(cfg Config) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ConfigMapName(cfg.UserPVCName),
+			Namespace: cfg.UserPVCNamespace,
+			Labels:    commonLabels(cfg),
+		},
+		Data: map[string]string{
+			"ganesha.conf": ganeshaConfig,
+		},
 	}
 }
 
@@ -108,6 +147,7 @@ func Deployment(cfg Config) *appsv1.Deployment {
 								Add: []corev1.Capability{
 									"SYS_ADMIN",
 									"DAC_READ_SEARCH",
+									"SETPCAP",
 									"CHOWN",
 									"FOWNER",
 									"SETUID",
@@ -120,10 +160,10 @@ func Deployment(cfg Config) *appsv1.Deployment {
 							{Name: "mountd", ContainerPort: 20048, Protocol: corev1.ProtocolTCP},
 							{Name: "rpcbind", ContainerPort: 111, Protocol: corev1.ProtocolTCP},
 						},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "export",
-							MountPath: "/export",
-						}},
+						VolumeMounts: []corev1.VolumeMount{
+							{Name: "export", MountPath: "/export"},
+							{Name: "ganesha-config", MountPath: "/etc/ganesha"},
+						},
 						ReadinessProbe: &corev1.Probe{
 							InitialDelaySeconds: 10,
 							PeriodSeconds:       10,
@@ -134,14 +174,26 @@ func Deployment(cfg Config) *appsv1.Deployment {
 							},
 						},
 					}},
-					Volumes: []corev1.Volume{{
-						Name: "export",
-						VolumeSource: corev1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-								ClaimName: BackingPVCName(cfg.UserPVCName),
+					Volumes: []corev1.Volume{
+						{
+							Name: "export",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: BackingPVCName(cfg.UserPVCName),
+								},
 							},
 						},
-					}},
+						{
+							Name: "ganesha-config",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: ConfigMapName(cfg.UserPVCName),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},

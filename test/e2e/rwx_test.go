@@ -48,6 +48,31 @@ func isRWXEnabled() bool {
 	return os.Getenv("RWX_ENABLED") == "1"
 }
 
+func dumpRWXDiagnostics(ns string) {
+	fmt.Fprintf(GinkgoWriter, "\n===== RWX diagnostics for namespace %s =====\n", ns)
+	for _, cmd := range [][]string{
+		{"get", "pvc", "-n", ns, "-o", "wide"},
+		{"get", "pods", "-n", ns, "-o", "wide"},
+		{"get", "deploy", "-n", ns, "-o", "wide"},
+		{"get", "svc", "-n", ns, "-o", "wide"},
+		{"get", "pv"},
+		{"describe", "pvc", "-n", ns},
+		{"describe", "pods", "-n", ns},
+		{"logs", "-n", ns, "-l", "app.kubernetes.io/name=topolvm-rwx-nfs", "--tail=200"},
+		{"get", "events", "-n", ns, "--sort-by=.metadata.creationTimestamp"},
+		{"get", "pods", "-n", "topolvm-system"},
+		{"logs", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=controller", "-c", "topolvm-controller", "--tail=200"},
+	} {
+		out, err := kubectl(cmd...)
+		fmt.Fprintf(GinkgoWriter, "\n--- kubectl %v ---\n", cmd)
+		fmt.Fprintln(GinkgoWriter, string(out))
+		if err != nil {
+			fmt.Fprintf(GinkgoWriter, "(error: %v)\n", err)
+		}
+	}
+	fmt.Fprintf(GinkgoWriter, "===== end diagnostics =====\n\n")
+}
+
 func testRWX() {
 	if !isRWXEnabled() {
 		return
@@ -60,10 +85,12 @@ func testRWX() {
 		createNamespace(ns)
 	})
 	AfterEach(func() {
-		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces", ns)
-			Expect(err).ShouldNot(HaveOccurred())
+		if CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
+			dumpRWXDiagnostics(ns)
+			return
 		}
+		_, err := kubectl("delete", "namespaces", ns)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("mounts the same RWX PVC from two pods on different nodes", func() {

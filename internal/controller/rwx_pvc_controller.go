@@ -37,6 +37,7 @@ func NewRWXPersistentVolumeClaimReconciler(c client.Client, apiReader client.Rea
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=persistentvolumes,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
@@ -77,6 +78,9 @@ func (r *RWXPersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, err
 	}
 
+	if err := r.ensureConfigMap(ctx, cfg); err != nil {
+		return ctrl.Result{}, fmt.Errorf("ensure ganesha configmap: %w", err)
+	}
 	if err := r.ensureBackingPVC(ctx, cfg); err != nil {
 		return ctrl.Result{}, fmt.Errorf("ensure backing PVC: %w", err)
 	}
@@ -165,6 +169,16 @@ func translateDataSource(src *corev1.TypedLocalObjectReference) *corev1.TypedLoc
 	}
 }
 
+func (r *RWXPersistentVolumeClaimReconciler) ensureConfigMap(ctx context.Context, cfg nfs.Config) error {
+	want := nfs.ConfigMap(cfg)
+	got := &corev1.ConfigMap{}
+	err := r.client.Get(ctx, client.ObjectKeyFromObject(want), got)
+	if apierrors.IsNotFound(err) {
+		return r.client.Create(ctx, want)
+	}
+	return err
+}
+
 func (r *RWXPersistentVolumeClaimReconciler) ensureBackingPVC(ctx context.Context, cfg nfs.Config) error {
 	want := nfs.BackingPVC(cfg)
 	got := &corev1.PersistentVolumeClaim{}
@@ -244,6 +258,7 @@ func (r *RWXPersistentVolumeClaimReconciler) reconcileDelete(ctx context.Context
 	pvName := nfs.PVName(pvc.Namespace, pvc.Name)
 	svcName := nfs.ServerName(pvc.Name)
 	backingName := nfs.BackingPVCName(pvc.Name)
+	cmName := nfs.ConfigMapName(pvc.Name)
 
 	if err := r.deleteIfExists(ctx, &corev1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvName}}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("delete RWX PV: %w", err)
@@ -253,6 +268,9 @@ func (r *RWXPersistentVolumeClaimReconciler) reconcileDelete(ctx context.Context
 	}
 	if err := r.deleteIfExists(ctx, &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: svcName, Namespace: pvc.Namespace}}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("delete ganesha deployment: %w", err)
+	}
+	if err := r.deleteIfExists(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: pvc.Namespace}}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("delete ganesha configmap: %w", err)
 	}
 	if err := r.deleteIfExists(ctx, &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: backingName, Namespace: pvc.Namespace}}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("delete backing PVC: %w", err)

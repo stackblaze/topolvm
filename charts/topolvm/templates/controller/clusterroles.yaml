@@ -19,6 +19,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
   - persistentvolumeclaims
   - persistentvolumes
   - services

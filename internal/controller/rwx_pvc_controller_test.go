@@ -150,6 +150,15 @@ var _ = Describe("RWXPersistentVolumeClaimController controller", func() {
 			g.Expect(pv.Spec.CSI).NotTo(BeNil())
 			g.Expect(pv.Spec.CSI.Driver).To(Equal(topolvm.NFSCSIDriverName))
 		}).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			cm := &corev1.ConfigMap{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Namespace: ns,
+				Name:      nfs.ConfigMapName(pvc.Name),
+			}, cm)).To(Succeed())
+			g.Expect(cm.Data).To(HaveKey("ganesha.conf"))
+		}).Should(Succeed())
 	})
 
 	It("rejects an RWX StorageClass that lacks a backing class reference", func() {

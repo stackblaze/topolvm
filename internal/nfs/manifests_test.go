@@ -1,6 +1,7 @@
 package nfs
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/topolvm/topolvm"
@@ -46,12 +47,34 @@ func TestDeploymentDefaultsToBundledImage(t *testing.T) {
 	if *dep.Spec.Replicas != 1 {
 		t.Errorf("single replica expected, got %d", *dep.Spec.Replicas)
 	}
-	vols := dep.Spec.Template.Spec.Volumes
-	if len(vols) != 1 || vols[0].PersistentVolumeClaim == nil {
-		t.Fatalf("deployment must mount backing PVC, got %+v", vols)
+	var backingVol, configVol *corev1.Volume
+	for i := range dep.Spec.Template.Spec.Volumes {
+		v := &dep.Spec.Template.Spec.Volumes[i]
+		if v.PersistentVolumeClaim != nil {
+			backingVol = v
+		}
+		if v.ConfigMap != nil {
+			configVol = v
+		}
 	}
-	if vols[0].PersistentVolumeClaim.ClaimName != "data"+topolvm.RWXBackingPVCSuffix {
-		t.Errorf("deployment must reference backing PVC, got %s", vols[0].PersistentVolumeClaim.ClaimName)
+	if backingVol == nil || backingVol.PersistentVolumeClaim.ClaimName != "data"+topolvm.RWXBackingPVCSuffix {
+		t.Errorf("deployment must reference backing PVC, got %+v", backingVol)
+	}
+	if configVol == nil || configVol.ConfigMap.Name != "data"+topolvm.RWXNFSServerSuffix+"-config" {
+		t.Errorf("deployment must mount ganesha configmap, got %+v", configVol)
+	}
+}
+
+func TestConfigMapHasGaneshaConf(t *testing.T) {
+	cm := ConfigMap(sampleConfig())
+	conf, ok := cm.Data["ganesha.conf"]
+	if !ok {
+		t.Fatal("configmap missing ganesha.conf key")
+	}
+	for _, want := range []string{"Export_Id", "Path = /export", "Pseudo = /export", "FSAL"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("ganesha.conf missing %q", want)
+		}
 	}
 }
 
