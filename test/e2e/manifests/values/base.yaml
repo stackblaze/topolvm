@@ -136,6 +136,7 @@ storageClasses:
         '{{ include "topolvm.pluginName" . }}/device-class': "volume-health"
   - name: topolvm-provisioner-rwx
     storageClass:
+      provisioner: topolvm.io/rwx
       isDefaultClass: false
       volumeBindingMode: Immediate
       allowVolumeExpansion: true

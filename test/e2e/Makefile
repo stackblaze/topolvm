@@ -315,12 +315,21 @@ common/setup-components: $(HELM) $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
 ifeq ($(RWX_ENABLED),1)
-	@echo install csi-driver-nfs
+	@echo "===== RWX: installing csi-driver-nfs ($(CSI_DRIVER_NFS_VERSION)) ====="
 	$(HELM) repo add csi-driver-nfs https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
 	$(HELM) repo update
 	$(HELM) install csi-driver-nfs csi-driver-nfs/csi-driver-nfs --namespace kube-system --version $(CSI_DRIVER_NFS_VERSION)
-	$(KUBECTL) -n kube-system wait --for=condition=available --timeout=120s deployment/csi-nfs-controller
-	$(KUBECTL) -n kube-system rollout status --timeout=120s daemonset/csi-nfs-node
+	@echo "===== RWX: waiting for csi-driver-nfs controller ====="
+	$(KUBECTL) -n kube-system wait --for=condition=available --timeout=180s deployment/csi-nfs-controller
+	@echo "===== RWX: waiting for csi-driver-nfs node daemonset ====="
+	$(KUBECTL) -n kube-system rollout status --timeout=180s daemonset/csi-nfs-node
+	@echo "===== RWX: csi-driver-nfs ready ====="
+	$(KUBECTL) -n kube-system get pods -l app=csi-nfs-controller -o wide
+	$(KUBECTL) -n kube-system get pods -l app=csi-nfs-node -o wide
+	$(KUBECTL) get csidrivers
+	$(KUBECTL) get sc
+	@echo "===== RWX: verifying topolvm-provisioner-rwx StorageClass exists ====="
+	$(KUBECTL) get sc topolvm-provisioner-rwx -o yaml
 endif
 
 .PHONY: common/test

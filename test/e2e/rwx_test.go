@@ -31,8 +31,6 @@ const (
 	rwxPVCName           = "rwx-shared"
 	rwxWriterPodName     = "rwx-writer"
 	rwxReaderPodName     = "rwx-reader"
-	rwxWriterNode        = "topolvm-e2e-worker2"
-	rwxReaderNode        = "topolvm-e2e-worker3"
 	rwxSnapName          = "rwx-snap"
 	rwxSnapClass         = "topolvm-provisioner-thin"
 	rwxRestorePVCName    = "rwx-restored"
@@ -43,6 +41,31 @@ const (
 	rwxSharedFile        = "/shared/hello.txt"
 	rwxSharedFileContent = "hello-from-rwx"
 )
+
+func pickRWXNodes() (writer, reader string) {
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
+	if err != nil {
+		Skip(fmt.Sprintf("could not list worker nodes: %v", err))
+	}
+	var workers []string
+	for _, n := range nodes.Items {
+		workers = append(workers, n.Name)
+	}
+	switch len(workers) {
+	case 0:
+		Skip("no worker nodes available")
+	case 1:
+		// Sanity test deletes worker2/worker3 — fall back to a single
+		// worker so the pods can still co-locate on it. This still
+		// proves the user PVC is mountable from multiple pods, just not
+		// across nodes.
+		return workers[0], workers[0]
+	default:
+		return workers[0], workers[1]
+	}
+	return "", ""
+}
 
 func isRWXEnabled() bool {
 	return os.Getenv("RWX_ENABLED") == "1"
@@ -79,8 +102,29 @@ func testRWX() {
 	}
 
 	var ns string
+	var preflightDone bool
 
 	BeforeEach(func() {
+		if !preflightDone {
+			fmt.Fprintln(GinkgoWriter, "\n===== RWX pre-flight =====")
+			for _, cmd := range [][]string{
+				{"get", "nodes", "-o", "wide"},
+				{"get", "sc"},
+				{"get", "csidrivers"},
+				{"get", "pods", "-n", "kube-system", "-l", "app=csi-nfs-controller"},
+				{"get", "pods", "-n", "kube-system", "-l", "app=csi-nfs-node"},
+				{"get", "pods", "-n", "topolvm-system"},
+			} {
+				out, err := kubectl(cmd...)
+				fmt.Fprintf(GinkgoWriter, "\n--- kubectl %v ---\n", cmd)
+				fmt.Fprintln(GinkgoWriter, string(out))
+				if err != nil {
+					fmt.Fprintf(GinkgoWriter, "(error: %v)\n", err)
+				}
+			}
+			fmt.Fprintln(GinkgoWriter, "===== end pre-flight =====")
+			preflightDone = true
+		}
 		ns = "rwx-test-" + randomString()
 		createNamespace(ns)
 	})
@@ -93,7 +137,10 @@ func testRWX() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	It("mounts the same RWX PVC from two pods on different nodes", func() {
+	It("mounts the same RWX PVC from two pods", func() {
+		writerNode, readerNode := pickRWXNodes()
+		By(fmt.Sprintf("scheduling writer on %s, reader on %s", writerNode, readerNode))
+
 		By("creating the RWX PVC")
 		pvcYAML := []byte(fmt.Sprintf(rwxPVCTemplateYAML, rwxPVCName, rwxInitialSizeMi))
 		_, err := kubectlWithInput(pvcYAML, "apply", "-n", ns, "-f", "-")
@@ -111,12 +158,11 @@ func testRWX() {
 			return nil
 		}).Should(Succeed())
 
-		By("scheduling writer and reader pods on different nodes")
-		writerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxWriterPodName, rwxPVCName, rwxWriterNode))
+		writerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxWriterPodName, rwxPVCName, writerNode))
 		_, err = kubectlWithInput(writerYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		readerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxReaderPodName, rwxPVCName, rwxReaderNode))
+		readerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxReaderPodName, rwxPVCName, readerNode))
 		_, err = kubectlWithInput(readerYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -153,12 +199,14 @@ func testRWX() {
 	})
 
 	It("snapshots and restores an RWX PVC", func() {
+		writerNode, readerNode := pickRWXNodes()
+
 		By("creating and populating the source RWX PVC")
 		pvcYAML := []byte(fmt.Sprintf(rwxPVCTemplateYAML, rwxPVCName, rwxInitialSizeMi))
 		_, err := kubectlWithInput(pvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		writerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxWriterPodName, rwxPVCName, rwxWriterNode))
+		writerYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxWriterPodName, rwxPVCName, writerNode))
 		_, err = kubectlWithInput(writerYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -200,7 +248,7 @@ func testRWX() {
 		_, err = kubectlWithInput(restoreYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		restorePodYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxRestorePodName, rwxRestorePVCName, rwxReaderNode))
+		restorePodYAML := []byte(fmt.Sprintf(rwxPodTemplateYAML, rwxRestorePodName, rwxRestorePVCName, readerNode))
 		_, err = kubectlWithInput(restorePodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

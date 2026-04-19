@@ -54,18 +54,21 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: topolvm-rwx
-provisioner: topolvm.io
+provisioner: topolvm.io/rwx
 parameters:
-  # Tells the TopoLVM controller to treat PVCs of this class as RWX requests.
   topolvm.io/access-mode: rwx
   # The RWO TopoLVM StorageClass used to provision the backing volume.
   topolvm.io/backing-storage-class: topolvm-provisioner
-  # Optional: passed through to the backing PVC.
-  csi.storage.k8s.io/fstype: ext4
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 ```
+
+> **Important:** The `provisioner` is `topolvm.io/rwx`, not `topolvm.io`. The RWX
+> path doesn't go through the CSI external-provisioner — the TopoLVM controller
+> watches RWX PVCs directly and provisions the NFS stack. Using a distinct
+> provisioner name keeps the external-provisioner from racing with the
+> reconciler and rejecting `MULTI_NODE_MULTI_WRITER`.
 
 > **Note:** The RWX StorageClass itself does *not* serve as the provisioner for
 > the user PVC — the user PVC ends up bound to an NFS PV via csi-driver-nfs.

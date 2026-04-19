@@ -109,7 +109,7 @@ func (r *RWXPersistentVolumeClaimReconciler) isRWXPVC(ctx context.Context, pvc *
 		}
 		return false, nil, err
 	}
-	if sc.Provisioner != topolvm.GetPluginName() {
+	if sc.Provisioner != topolvm.RWXProvisionerName {
 		return false, nil, nil
 	}
 	if !strings.EqualFold(sc.Parameters[topolvm.RWXAccessModeParameter], topolvm.RWXAccessModeValue) {

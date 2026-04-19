@@ -136,8 +136,10 @@ func Deployment(cfg Config) *appsv1.Deployment {
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:  "nfs-ganesha",
-						Image: image,
+						Name:    "nfs-ganesha",
+						Image:   image,
+						Command: []string{"/usr/bin/ganesha.nfsd"},
+						Args:    []string{"-F", "-L", "/dev/stdout", "-f", "/etc/ganesha/ganesha.conf"},
 						SecurityContext: &corev1.SecurityContext{
 							Privileged:               ptr.To(false),
 							AllowPrivilegeEscalation: ptr.To(false),
@@ -163,6 +165,8 @@ func Deployment(cfg Config) *appsv1.Deployment {
 						VolumeMounts: []corev1.VolumeMount{
 							{Name: "export", MountPath: "/export"},
 							{Name: "ganesha-config", MountPath: "/etc/ganesha"},
+							{Name: "ganesha-state", MountPath: "/var/lib/nfs/ganesha"},
+							{Name: "dbus", MountPath: "/var/run/dbus"},
 						},
 						ReadinessProbe: &corev1.Probe{
 							InitialDelaySeconds: 10,
@@ -192,6 +196,14 @@ func Deployment(cfg Config) *appsv1.Deployment {
 									},
 								},
 							},
+						},
+						{
+							Name:         "ganesha-state",
+							VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+						},
+						{
+							Name:         "dbus",
+							VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 						},
 					},
 				},
