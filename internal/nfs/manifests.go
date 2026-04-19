@@ -51,6 +51,7 @@ func commonLabels(cfg Config) map[string]string {
 const ganeshaConfig = `NFS_CORE_PARAM {
     Protocols = 4;
     NFS_Port = 2049;
+    allow_set_io_flusher_fail = true;
 }
 
 NFSv4 {

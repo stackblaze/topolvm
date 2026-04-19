@@ -48,7 +48,7 @@ func pickRWXNodes() (writer, reader string) {
 	if err != nil {
 		Skip(fmt.Sprintf("could not list worker nodes: %v", err))
 	}
-	var workers []string
+	workers := make([]string, 0, len(nodes.Items))
 	for _, n := range nodes.Items {
 		workers = append(workers, n.Name)
 	}
@@ -88,7 +88,9 @@ func dumpRWXDiagnostics(ns string) {
 		{"logs", "-n", ns, "-l", "app.kubernetes.io/name=topolvm-rwx-nfs", "--tail=200"},
 		{"get", "events", "-n", ns, "--sort-by=.metadata.creationTimestamp"},
 		{"get", "pods", "-n", "topolvm-system"},
-		{"logs", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=controller", "-c", "topolvm-controller", "--tail=200"},
+		{"logs", "-n", "topolvm-system", "-l",
+			"app.kubernetes.io/component=controller",
+			"-c", "topolvm-controller", "--tail=200"},
 	} {
 		out, err := kubectl(cmd...)
 		logf("\n--- kubectl %v ---\n", cmd)
