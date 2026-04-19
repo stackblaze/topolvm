@@ -5,6 +5,9 @@ on:
         type: string
       test_legacy:
         type: string
+      rwx_enabled:
+        type: string
+        default: ""
 
 jobs:
   e2e-k8s:
@@ -18,6 +21,7 @@ jobs:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
       TEST_LEGACY: ${{ inputs.test_legacy }}
+      RWX_ENABLED: ${{ inputs.rwx_enabled }}
     steps:
       - id: check
         run: |
