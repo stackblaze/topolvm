@@ -71,8 +71,12 @@ func isRWXEnabled() bool {
 	return os.Getenv("RWX_ENABLED") == "1"
 }
 
+func logf(format string, a ...any) {
+	_, _ = fmt.Fprintf(GinkgoWriter, format, a...)
+}
+
 func dumpRWXDiagnostics(ns string) {
-	fmt.Fprintf(GinkgoWriter, "\n===== RWX diagnostics for namespace %s =====\n", ns)
+	logf("\n===== RWX diagnostics for namespace %s =====\n", ns)
 	for _, cmd := range [][]string{
 		{"get", "pvc", "-n", ns, "-o", "wide"},
 		{"get", "pods", "-n", ns, "-o", "wide"},
@@ -87,13 +91,13 @@ func dumpRWXDiagnostics(ns string) {
 		{"logs", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=controller", "-c", "topolvm-controller", "--tail=200"},
 	} {
 		out, err := kubectl(cmd...)
-		fmt.Fprintf(GinkgoWriter, "\n--- kubectl %v ---\n", cmd)
-		fmt.Fprintln(GinkgoWriter, string(out))
+		logf("\n--- kubectl %v ---\n", cmd)
+		logf("%s\n", string(out))
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "(error: %v)\n", err)
+			logf("(error: %v)\n", err)
 		}
 	}
-	fmt.Fprintf(GinkgoWriter, "===== end diagnostics =====\n\n")
+	logf("===== end diagnostics =====\n\n")
 }
 
 func testRWX() {
@@ -106,7 +110,7 @@ func testRWX() {
 
 	BeforeEach(func() {
 		if !preflightDone {
-			fmt.Fprintln(GinkgoWriter, "\n===== RWX pre-flight =====")
+			logf("\n===== RWX pre-flight =====\n")
 			for _, cmd := range [][]string{
 				{"get", "nodes", "-o", "wide"},
 				{"get", "sc"},
@@ -116,13 +120,13 @@ func testRWX() {
 				{"get", "pods", "-n", "topolvm-system"},
 			} {
 				out, err := kubectl(cmd...)
-				fmt.Fprintf(GinkgoWriter, "\n--- kubectl %v ---\n", cmd)
-				fmt.Fprintln(GinkgoWriter, string(out))
+				logf("\n--- kubectl %v ---\n", cmd)
+				logf("%s\n", string(out))
 				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "(error: %v)\n", err)
+					logf("(error: %v)\n", err)
 				}
 			}
-			fmt.Fprintln(GinkgoWriter, "===== end pre-flight =====")
+			logf("===== end pre-flight =====\n")
 			preflightDone = true
 		}
 		ns = "rwx-test-" + randomString()
