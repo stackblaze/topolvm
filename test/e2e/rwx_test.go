@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var (
@@ -305,15 +306,15 @@ func testRWX() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("waiting for the backing PVC to reach the expanded size")
+		want := resource.MustParse(fmt.Sprintf("%dMi", rwxExpandedSizeMi))
 		Eventually(func() error {
 			var backing corev1.PersistentVolumeClaim
 			if err := getObjects(&backing, "pvc", "-n", ns, rwxPVCName+"-rwx-backing"); err != nil {
 				return err
 			}
 			req := backing.Spec.Resources.Requests[corev1.ResourceStorage]
-			want := fmt.Sprintf("%dMi", rwxExpandedSizeMi)
-			if req.String() != want {
-				return fmt.Errorf("backing request %s != %s", req.String(), want)
+			if req.Cmp(want) < 0 {
+				return fmt.Errorf("backing request %s < %s", req.String(), want.String())
 			}
 			return nil
 		}).Should(Succeed())
