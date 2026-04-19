@@ -139,7 +139,11 @@ func Deployment(cfg Config) *appsv1.Deployment {
 						Name:    "nfs-ganesha",
 						Image:   image,
 						Command: []string{"ganesha.nfsd"},
-						Args:    []string{"-F", "-L", "/dev/stdout", "-f", "/etc/ganesha/ganesha.conf"},
+						Args: []string{
+							"-F", "-L", "/dev/stdout",
+							"-f", "/etc/ganesha/ganesha.conf",
+							"-p", "/var/lib/nfs/ganesha/ganesha.pid",
+						},
 						SecurityContext: &corev1.SecurityContext{
 							Privileged:               ptr.To(false),
 							AllowPrivilegeEscalation: ptr.To(false),
