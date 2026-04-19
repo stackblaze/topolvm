@@ -28,16 +28,20 @@ var (
 )
 
 const (
-	rwxPVCName           = "rwx-shared"
-	rwxWriterPodName     = "rwx-writer"
-	rwxReaderPodName     = "rwx-reader"
-	rwxSnapName          = "rwx-snap"
-	rwxSnapClass         = "topolvm-provisioner-thin"
-	rwxRestorePVCName    = "rwx-restored"
-	rwxRestorePodName    = "rwx-restore-reader"
-	rwxInitialSizeMi     = 256
-	rwxExpandedSizeMi    = 512
-	rwxRestoreSizeMi     = 256
+	rwxPVCName        = "rwx-shared"
+	rwxWriterPodName  = "rwx-writer"
+	rwxReaderPodName  = "rwx-reader"
+	rwxSnapName       = "rwx-snap"
+	rwxSnapClass      = "topolvm-provisioner-thin"
+	rwxRestorePVCName = "rwx-restored"
+	rwxRestorePodName = "rwx-restore-reader"
+	// TopoLVM thin provisioning rounds sizes up (usually to 300Mi minimum on
+	// XFS). The test uses 512Mi for the initial PVC and 1024Mi for expand /
+	// restore to stay comfortably above whatever rounding the backing class
+	// applies.
+	rwxInitialSizeMi     = 512
+	rwxExpandedSizeMi    = 1024
+	rwxRestoreSizeMi     = 1024
 	rwxSharedFile        = "/shared/hello.txt"
 	rwxSharedFileContent = "hello-from-rwx"
 )

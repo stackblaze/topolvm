@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	"github.com/topolvm/topolvm"
@@ -11,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,10 +78,19 @@ func (r *RWXVolumeSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if err := r.ensureMirrorSnapshot(ctx, userSnap, sourcePVC); err != nil {
+	mirror, err := r.ensureMirrorSnapshot(ctx, userSnap, sourcePVC)
+	if err != nil {
 		log.Error(err, "failed to ensure mirror snapshot",
 			"userSnapshot", req.NamespacedName)
 		return ctrl.Result{}, fmt.Errorf("ensure mirror snapshot: %w", err)
+	}
+	if err := r.syncUserSnapshotStatus(ctx, userSnap, mirror); err != nil {
+		return ctrl.Result{}, fmt.Errorf("sync user snapshot status: %w", err)
+	}
+	// Requeue periodically until the mirror is ready, so we pick up the
+	// Status change. Cheap enough for the low cardinality of user snapshots.
+	if mirror.Status == nil || mirror.Status.ReadyToUse == nil || !*mirror.Status.ReadyToUse {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -104,17 +115,21 @@ func (r *RWXVolumeSnapshotReconciler) isRWXPVC(ctx context.Context, pvc *corev1.
 	return true, sc, nil
 }
 
-func (r *RWXVolumeSnapshotReconciler) ensureMirrorSnapshot(ctx context.Context, userSnap *snapshotv1.VolumeSnapshot, sourcePVC *corev1.PersistentVolumeClaim) error {
+func (r *RWXVolumeSnapshotReconciler) ensureMirrorSnapshot(
+	ctx context.Context,
+	userSnap *snapshotv1.VolumeSnapshot,
+	sourcePVC *corev1.PersistentVolumeClaim,
+) (*snapshotv1.VolumeSnapshot, error) {
 	mirrorName := userSnap.Name + topolvm.RWXMirrorSnapshotSuffix
 	backingPVC := nfs.BackingPVCName(sourcePVC.Name)
 
 	mirror := &snapshotv1.VolumeSnapshot{}
 	err := r.client.Get(ctx, client.ObjectKey{Namespace: userSnap.Namespace, Name: mirrorName}, mirror)
 	if err == nil {
-		return nil
+		return mirror, nil
 	}
 	if !apierrors.IsNotFound(err) {
-		return err
+		return nil, err
 	}
 
 	want := &snapshotv1.VolumeSnapshot{
@@ -135,7 +150,47 @@ func (r *RWXVolumeSnapshotReconciler) ensureMirrorSnapshot(ctx context.Context, 
 			},
 		},
 	}
-	return r.client.Create(ctx, want)
+	if err := r.client.Create(ctx, want); err != nil {
+		return nil, err
+	}
+	return want, nil
+}
+
+func (r *RWXVolumeSnapshotReconciler) syncUserSnapshotStatus(
+	ctx context.Context,
+	userSnap *snapshotv1.VolumeSnapshot,
+	mirror *snapshotv1.VolumeSnapshot,
+) error {
+	if mirror.Status == nil {
+		return nil
+	}
+	if userSnap.Status != nil &&
+		equalBoolPtr(userSnap.Status.ReadyToUse, mirror.Status.ReadyToUse) &&
+		equalQuantityPtr(userSnap.Status.RestoreSize, mirror.Status.RestoreSize) {
+		return nil
+	}
+	patched := userSnap.DeepCopy()
+	if patched.Status == nil {
+		patched.Status = &snapshotv1.VolumeSnapshotStatus{}
+	}
+	patched.Status.ReadyToUse = mirror.Status.ReadyToUse
+	patched.Status.RestoreSize = mirror.Status.RestoreSize
+	patched.Status.CreationTime = mirror.Status.CreationTime
+	return r.client.Status().Update(ctx, patched)
+}
+
+func equalBoolPtr(a, b *bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+func equalQuantityPtr(a, b *resource.Quantity) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Cmp(*b) == 0
 }
 
 func (r *RWXVolumeSnapshotReconciler) reconcileDelete(ctx context.Context, userSnap *snapshotv1.VolumeSnapshot) (ctrl.Result, error) {
