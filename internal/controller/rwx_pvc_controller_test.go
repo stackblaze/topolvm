@@ -91,7 +91,7 @@ var _ = Describe("RWXPersistentVolumeClaimController controller", func() {
 
 		rwxSC := &storagev1.StorageClass{
 			ObjectMeta:  metav1.ObjectMeta{Name: storageClassNameBase + "-rwx"},
-			Provisioner: topolvm.GetPluginName(),
+			Provisioner: topolvm.RWXProvisionerName,
 			Parameters: map[string]string{
 				topolvm.RWXAccessModeParameter:          topolvm.RWXAccessModeValue,
 				topolvm.RWXBackingStorageClassParameter: storageClassNameBase + "-rwo",
@@ -166,7 +166,7 @@ var _ = Describe("RWXPersistentVolumeClaimController controller", func() {
 
 		sc := &storagev1.StorageClass{
 			ObjectMeta:  metav1.ObjectMeta{Name: storageClassNameBase + "-rwx-missing"},
-			Provisioner: topolvm.GetPluginName(),
+			Provisioner: topolvm.RWXProvisionerName,
 			Parameters: map[string]string{
 				topolvm.RWXAccessModeParameter: topolvm.RWXAccessModeValue,
 			},
