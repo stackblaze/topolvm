@@ -118,7 +118,11 @@ generate: manifests generate-api generate-helm-docs
 
 .PHONY: check-uncommitted
 check-uncommitted: generate ## Check if latest generated artifacts are committed.
-	git diff --exit-code --name-only
+	@if ! git diff --exit-code --name-only; then \
+		echo "===== uncommitted generated changes ====="; \
+		git --no-pager diff; \
+		exit 1; \
+	fi
 
 .PHONY: lint
 lint: ## Run lint

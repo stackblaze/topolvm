@@ -138,7 +138,7 @@ func Deployment(cfg Config) *appsv1.Deployment {
 					Containers: []corev1.Container{{
 						Name:    "nfs-ganesha",
 						Image:   image,
-						Command: []string{"/usr/bin/ganesha.nfsd"},
+						Command: []string{"ganesha.nfsd"},
 						Args:    []string{"-F", "-L", "/dev/stdout", "-f", "/etc/ganesha/ganesha.conf"},
 						SecurityContext: &corev1.SecurityContext{
 							Privileged:               ptr.To(false),

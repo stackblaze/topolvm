@@ -7,8 +7,13 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - nodes
+  - configmaps
+  - persistentvolumeclaims
+  - persistentvolumes
+  - services
   verbs:
+  - create
+  - delete
   - get
   - list
   - patch
@@ -17,13 +22,8 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  - persistentvolumeclaims
-  - persistentvolumes
-  - services
+  - nodes
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
