@@ -39,35 +39,33 @@ jobs:
             test/e2e/topolvm.img
           key: e2e-cache-${{ github.sha }}
 
-  # Non-RWX e2e variants are temporarily disabled while we stabilize the RWX
-  # path. Re-enable before merging to main.
-  # default:
-  #   needs: build
-  #   uses: ./.github/workflows/e2e-k8s-workflow.yaml
-  #   with:
-  #     test_scheduler_extender_type: "daemonset"
-  #     test_legacy: "false"
-  #
-  # scheduler-manifest:
-  #   needs: build
-  #   uses: ./.github/workflows/e2e-k8s-workflow.yaml
-  #   with:
-  #     test_scheduler_extender_type: "deployment"
-  #     test_legacy: "false"
-  #
-  # use-legacy:
-  #   needs: build
-  #   uses: ./.github/workflows/e2e-k8s-workflow.yaml
-  #   with:
-  #     test_scheduler_extender_type: "deployment"
-  #     test_legacy: "true"
-  #
-  # storage-capacity-scoring:
-  #   needs: build
-  #   uses: ./.github/workflows/e2e-k8s-workflow.yaml
-  #   with:
-  #     test_scheduler_extender_type: "none"
-  #     test_legacy: "false"
+  default:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "daemonset"
+      test_legacy: "false"
+
+  scheduler-manifest:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "deployment"
+      test_legacy: "false"
+
+  use-legacy:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "deployment"
+      test_legacy: "true"
+
+  storage-capacity-scoring:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "none"
+      test_legacy: "false"
 
   rwx:
     needs: build
