@@ -84,6 +84,7 @@ rules:
 - apiGroups:
   - storage.k8s.io
   resources:
+  - csidrivers
   - storageclasses
   verbs:
   - get
@@ -93,7 +94,6 @@ rules:
   - topolvm.io
   resources:
   - backupconfigs
-  - logicalvolumes
   - restores
   verbs:
   - get
@@ -115,6 +115,7 @@ rules:
 - apiGroups:
   - topolvm.io
   resources:
+  - logicalvolumes
   - pvcbackups
   verbs:
   - create
