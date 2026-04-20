@@ -173,17 +173,9 @@ func testBackup() {
 		_, err = kubectlWithInput([]byte(pvcYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Eventually(func() error {
-			var pvc corev1.PersistentVolumeClaim
-			if err := getObjects(&pvc, "pvc", "-n", ns, backupPVCName); err != nil {
-				return err
-			}
-			if pvc.Status.Phase != corev1.ClaimBound {
-				return fmt.Errorf("source PVC not bound: %s", pvc.Status.Phase)
-			}
-			return nil
-		}).WithTimeout(2 * time.Minute).Should(Succeed())
-
+		// The TopoLVM StorageClass uses WaitForFirstConsumer, so the PVC
+		// stays Pending until a Pod references it. Create the writer Pod
+		// right away and use its completion as the implicit bind check.
 		writerYAML := fmt.Sprintf(backupWriterPodTemplateYAML, backupWriterPodName, backupFileContents, backupPVCName)
 		_, err = kubectlWithInput([]byte(writerYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -197,7 +189,7 @@ func testBackup() {
 				return fmt.Errorf("writer pod phase=%s", p.Status.Phase)
 			}
 			return nil
-		}).WithTimeout(2 * time.Minute).Should(Succeed())
+		}).WithTimeout(3 * time.Minute).Should(Succeed())
 
 		By("waiting for the BackupConfig controller to create a managed PVCBackup")
 		Eventually(func() error {

@@ -94,11 +94,12 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("get target PVC: %w", err)
 	}
-	if pvc.Status.Phase != corev1.ClaimBound {
-		return r.setRestoreStatus(ctx, rs, topolvmv1.RestorePhasePending, "waiting for target PVC to bind")
-	}
+	// Do NOT wait for Bound: TopoLVM's default StorageClass uses
+	// WaitForFirstConsumer, so the target PVC stays Pending until the
+	// restore Job's Pod references it. Creating the Job here is the
+	// trigger for provisioning.
 
-	// PVC is Bound — ensure the restore Job exists and watch for completion.
+	// Ensure the restore Job exists and watch for completion.
 	cfg := backup.RestoreConfig{
 		RestoreName:              rs.Name,
 		RestoreNamespace:         rs.Namespace,

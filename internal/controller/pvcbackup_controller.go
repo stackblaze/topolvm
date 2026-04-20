@@ -242,9 +242,11 @@ func (r *PVCBackupReconciler) advanceCloning(
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if tempPVC.Status.Phase != corev1.ClaimBound {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
+	// Do NOT wait for the temp PVC to reach Bound here. TopoLVM's default
+	// StorageClass uses WaitForFirstConsumer, so the PVC will stay Pending
+	// until a Pod references it. The mover Job we're about to create is
+	// exactly that first consumer — creating it triggers the scheduler to
+	// pick a node and TopoLVM to provision the underlying LV.
 
 	runID := extractRunIDFromTempPVC(pb.Spec.PVCName, pb.Status.CurrentTempPVCName)
 	if runID == "" {
