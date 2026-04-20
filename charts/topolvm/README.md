@@ -17,6 +17,9 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v16.
 | controller.additionalContainers | list | `[]` | Define extra containers to add to the Deployment. Please ensure not to use any existing container names. |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
+| controller.backup.enabled | bool | `false` | Enable the BackupConfig/PVCBackup/Restore controllers. When true, the controller watches the cluster-scoped BackupConfig named `default` and drives restic-based backups of matching PVCs to S3. |
+| controller.backup.moverServiceAccount | string | `"default"` | ServiceAccount under which the mover and restore Jobs run in each target namespace. Must already exist (or be created separately) in every namespace that contains a backed-up PVC. Defaults to the namespace's `default` ServiceAccount. |
+| controller.backup.resticImage | string | `"restic/restic:0.17.3"` | Container image used for the mover and restore Jobs. Must contain the `restic` binary. |
 | controller.initContainers | list | `[]` | Additional initContainers for the controller service. |
 | controller.labels | object | `{}` | Additional labels to be added to the Deployment. |
 | controller.leaderElection.enabled | bool | `true` | Enable leader election for controller and all sidecars. |
