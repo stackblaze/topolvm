@@ -9,6 +9,8 @@ TEST_LEGACY ?= false
 TEST_LVMD_TYPE ?= systemd-service
 # 1 to enable RWX tests and install csi-driver-nfs
 RWX_ENABLED ?=
+# 1 to enable restic-backed backup/restore tests (requires BACKUP_S3_* secrets in env)
+BACKUP_ENABLED ?=
 
 BACKING_STORE := ./build
 BINDIR := $(shell pwd)/bin
@@ -59,6 +61,10 @@ endif
 
 ifeq ($(RWX_ENABLED),1)
 HELM_VALUES_FILES += manifests/values/rwx.yaml
+endif
+
+ifeq ($(BACKUP_ENABLED),1)
+HELM_VALUES_FILES += manifests/values/backup.yaml
 endif
 
 ifeq ($(shell [ $(STORAGE_CAPACITY) = "true" ] && [ $(KUBERNETES_MINOR) -ge 33 ] && echo yes),yes)
@@ -342,4 +348,11 @@ common/test: $(GINKGO)
 	STORAGE_CAPACITY_SCORING=$(STORAGE_CAPACITY_SCORING) \
 	USE_LEGACY=$(USE_LEGACY) \
 	RWX_ENABLED=$(RWX_ENABLED) \
+	BACKUP_ENABLED=$(BACKUP_ENABLED) \
+	BACKUP_S3_ENDPOINT="$(BACKUP_S3_ENDPOINT)" \
+	BACKUP_S3_BUCKET="$(BACKUP_S3_BUCKET)" \
+	BACKUP_S3_ACCESS_KEY="$(BACKUP_S3_ACCESS_KEY)" \
+	BACKUP_S3_SECRET_KEY="$(BACKUP_S3_SECRET_KEY)" \
+	BACKUP_RESTIC_PASSWORD="$(BACKUP_RESTIC_PASSWORD)" \
+	BACKUP_S3_PREFIX="$(BACKUP_S3_PREFIX)" \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .

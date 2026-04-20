@@ -1,0 +1,11 @@
+apiVersion: topolvm.io/v1
+kind: Restore
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  sourceNamespace: %s
+  sourcePVCName: %s
+  targetPVCName: %s
+  size: %dMi
+  storageClassName: topolvm-provisioner-thin

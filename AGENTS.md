@@ -26,6 +26,7 @@ When you use AI assistance on this project, the AI reads this file to understand
   - [docs/lvmd-protocol.md](./docs/lvmd-protocol.md) - gRPC protocol (auto-generated)
 - **Advanced Topics**:
   - [docs/snapshot-and-restore.md](./docs/snapshot-and-restore.md) - Snapshot/clone support
+  - [docs/backup-restore.md](./docs/backup-restore.md) - restic-based backup/restore to S3 (opt-in)
   - [docs/advanced-setup.md](./docs/advanced-setup.md) - Advanced configurations
   - [docs/limitations.md](./docs/limitations.md) - Known limitations
   - [docs/faq.md](./docs/faq.md) - Frequently asked questions

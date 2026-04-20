@@ -1,0 +1,17 @@
+apiVersion: topolvm.io/v1
+kind: BackupConfig
+metadata:
+  name: default
+spec:
+  s3:
+    endpoint: %q
+    bucket: %q
+    prefix: %q
+    credentialsSecretRef:
+      name: %s
+      namespace: %s
+  resticPasswordSecretRef:
+    name: %s
+    namespace: %s
+  volumeSnapshotClassName: topolvm-provisioner-thin
+  # Leave schedule empty so the controller only backs up on manual trigger.

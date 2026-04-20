@@ -95,6 +95,12 @@ manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and
 		output:crd:artifacts:config=config/crd/bases
 	cat config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
 	cat config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
+	cat config/crd/bases/topolvm.io_backupconfigs.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_backupconfigs.yaml
+	cat config/crd/bases/topolvm.io_pvcbackups.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_pvcbackups.yaml
+	cat config/crd/bases/topolvm.io_restores.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_restores.yaml
+	cat config/crd/bases/topolvm.cybozu.com_backupconfigs.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_backupconfigs.yaml
+	cat config/crd/bases/topolvm.cybozu.com_pvcbackups.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_pvcbackups.yaml
+	cat config/crd/bases/topolvm.cybozu.com_restores.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_restores.yaml
 
 .PHONY: generate-api ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate-api: 

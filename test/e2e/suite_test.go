@@ -142,4 +142,5 @@ var _ = Describe("TopoLVM", func() {
 	Context("empty storageclass", testEmptyStorageClass)
 	Context("CSI sanity", testSanity)
 	Context("rwx", testRWX)
+	Context("backup", testBackup)
 })

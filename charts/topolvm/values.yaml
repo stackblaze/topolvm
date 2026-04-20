@@ -455,6 +455,22 @@ controller:
     # Leave empty to use the controller's compiled-in default.
     ganeshaImage: ""
 
+  backup:
+    # controller.backup.enabled -- Enable the BackupConfig/PVCBackup/Restore controllers.
+    # When true, the controller watches the cluster-scoped BackupConfig named
+    # `default` and drives restic-based backups of matching PVCs to S3.
+    enabled: false
+
+    # controller.backup.resticImage -- Container image used for the mover and
+    # restore Jobs. Must contain the `restic` binary.
+    resticImage: "restic/restic:0.17.3"
+
+    # controller.backup.moverServiceAccount -- ServiceAccount under which the
+    # mover and restore Jobs run in each target namespace. Must already exist
+    # (or be created separately) in every namespace that contains a backed-up
+    # PVC. Defaults to the namespace's `default` ServiceAccount.
+    moverServiceAccount: "default"
+
   leaderElection:
     # controller.leaderElection.enabled -- Enable leader election for controller and all sidecars.
     enabled: true
