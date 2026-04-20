@@ -37,16 +37,16 @@ var (
 )
 
 const (
-	backupPVCName         = "backup-src"
-	backupWriterPodName   = "backup-writer"
-	backupReaderPodName   = "backup-reader"
-	backupRestoreName     = "backup-restore"
-	backupRestorePVCName  = "backup-restored"
-	backupS3CredsSecret   = "s3-creds"
-	backupResticPwSecret  = "restic-pw"
-	backupPVCSizeMi       = 512
-	backupFileContents    = "hello-from-backup"
-	backupControllerNS    = "topolvm-system"
+	backupPVCName        = "backup-src"
+	backupWriterPodName  = "backup-writer"
+	backupReaderPodName  = "backup-reader"
+	backupRestoreName    = "backup-restore"
+	backupRestorePVCName = "backup-restored"
+	backupS3CredsSecret  = "s3-creds"
+	backupResticPwSecret = "restic-pw"
+	backupPVCSizeMi      = 512
+	backupFileContents   = "hello-from-backup"
+	backupControllerNS   = "topolvm-system"
 )
 
 type backupEnv struct {

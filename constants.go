@@ -142,9 +142,9 @@ const (
 	BackupConfigSingletonName = "default"
 
 	// Annotation keys (on the source PVC) overriding BackupConfig defaults.
-	BackupEnabledAnnotation         = pluginName + "/backup"
-	BackupScheduleAnnotation        = pluginName + "/backup-schedule"
-	BackupKeepSnapshotAnnotation    = pluginName + "/backup-keep-snapshot"
+	BackupEnabledAnnotation          = pluginName + "/backup"
+	BackupScheduleAnnotation         = pluginName + "/backup-schedule"
+	BackupKeepSnapshotAnnotation     = pluginName + "/backup-keep-snapshot"
 	BackupRetentionLastAnnotation    = pluginName + "/backup-retention-last"
 	BackupRetentionHourlyAnnotation  = pluginName + "/backup-retention-hourly"
 	BackupRetentionDailyAnnotation   = pluginName + "/backup-retention-daily"
@@ -153,8 +153,8 @@ const (
 	BackupRetentionYearlyAnnotation  = pluginName + "/backup-retention-yearly"
 
 	// BackupManagedByLabel marks CronJobs/Jobs/Snapshots created by the backup controller.
-	BackupManagedByLabel        = pluginName + "/backup-managed-by"
-	BackupManagedByValue        = "topolvm-backup"
+	BackupManagedByLabel         = pluginName + "/backup-managed-by"
+	BackupManagedByValue         = "topolvm-backup"
 	BackupOwnerPVCNamespaceLabel = pluginName + "/backup-pvc-namespace"
 	BackupOwnerPVCNameLabel      = pluginName + "/backup-pvc-name"
 
@@ -162,10 +162,10 @@ const (
 	BackupPVCFinalizer = pluginName + "/backup"
 
 	// Resource name suffixes.
-	BackupCronJobSuffix       = "-backup"
-	BackupJobSnapshotInfix    = "-backup-snap-"
-	BackupJobTempPVCInfix     = "-backup-src-"
-	RestoreJobSuffix          = "-restore"
+	BackupCronJobSuffix    = "-backup"
+	BackupJobSnapshotInfix = "-backup-snap-"
+	BackupJobTempPVCInfix  = "-backup-src-"
+	RestoreJobSuffix       = "-restore"
 
 	// Secret key names.
 	ResticPasswordSecretKey = "password"
