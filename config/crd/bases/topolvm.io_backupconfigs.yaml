@@ -1,0 +1,300 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: backupconfigs.topolvm.io
+spec:
+  group: topolvm.io
+  names:
+    kind: BackupConfig
+    listKind: BackupConfigList
+    plural: backupconfigs
+    singular: backupconfig
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          BackupConfig is the cluster-scoped configuration for TopoLVM backup/restore
+          via restic.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              BackupConfigSpec defines the cluster-wide backup configuration. A single
+              BackupConfig named "default" is expected; additional BackupConfigs are
+              ignored by the controller.
+            properties:
+              keepSnapshotAfterBackup:
+                default: false
+                description: |-
+                  KeepSnapshotAfterBackup controls whether the VolumeSnapshot created for
+                  the backup is preserved after restic completes. When false (default) the
+                  snapshot is deleted once the backup finishes, regardless of outcome.
+                  Can be overridden per-PVC via "topolvm.io/backup-keep-snapshot".
+                type: boolean
+              resticPasswordSecretRef:
+                description: |-
+                  ResticPasswordSecretRef references a Secret with a single "password" key
+                  used as the restic repository password. Losing this secret makes existing
+                  backups unreadable.
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              retention:
+                description: |-
+                  Retention is the default retention policy. Per-PVC annotations of the
+                  form "topolvm.io/backup-retention-<bucket>" override individual buckets.
+                properties:
+                  keepDaily:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepHourly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepLast:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepMonthly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepWeekly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepYearly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              s3:
+                description: S3 is the remote object store configuration.
+                properties:
+                  bucket:
+                    description: |-
+                      Bucket is the target bucket name. One restic repository per PVC is
+                      created under the key prefix "<namespace>/<pvc-name>/".
+                    type: string
+                  credentialsSecretRef:
+                    description: |-
+                      CredentialsSecretRef references a Secret containing AWS_ACCESS_KEY_ID and
+                      AWS_SECRET_ACCESS_KEY keys. The secret must live in the same namespace as
+                      the topolvm-controller.
+                    properties:
+                      name:
+                        description: name is unique within a namespace to reference
+                          a secret resource.
+                        type: string
+                      namespace:
+                        description: namespace defines the space within which the
+                          secret name must be unique.
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  endpoint:
+                    description: |-
+                      Endpoint is the S3 endpoint URL, e.g. "https://s3.us-east-1.amazonaws.com"
+                      or a MinIO endpoint. Required.
+                    type: string
+                  insecureTLS:
+                    description: |-
+                      InsecureTLS disables TLS verification against the S3 endpoint. Use only
+                      for self-signed endpoints during testing.
+                    type: boolean
+                  prefix:
+                    description: |-
+                      Prefix is an optional key prefix prepended under the bucket root before
+                      the per-PVC "<namespace>/<pvc>" path. Useful for isolating CI runs that
+                      share a bucket, e.g. prefix="ci/<run-id>".
+                    type: string
+                  region:
+                    description: Region is the S3 region. Optional for providers that
+                      do not require it.
+                    type: string
+                required:
+                - bucket
+                - credentialsSecretRef
+                - endpoint
+                type: object
+              schedule:
+                description: |-
+                  Schedule is the default cron schedule applied to every backed-up PVC.
+                  When empty, no backup CronJobs are created unless a PVC sets its own
+                  schedule via the "topolvm.io/backup-schedule" annotation.
+                type: string
+              selector:
+                description: |-
+                  Selector restricts which PVCs are backed up. An empty selector matches
+                  every PVC bound to a TopoLVM StorageClass. PVCs annotated
+                  "topolvm.io/backup=false" are always skipped.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              suspend:
+                description: |-
+                  Suspend pauses creation of new backup Jobs without deleting existing
+                  CronJobs or previously taken backups.
+                type: boolean
+              volumeSnapshotClassName:
+                description: |-
+                  VolumeSnapshotClassName is the VolumeSnapshotClass used to snapshot
+                  PVCs prior to backup. If empty the controller falls back to the default
+                  VolumeSnapshotClass for the topolvm driver.
+                type: string
+            required:
+            - resticPasswordSecretRef
+            - s3
+            type: object
+          status:
+            description: BackupConfigStatus reports the observed state of the backup
+              fleet.
+            properties:
+              conditions:
+                description: |-
+                  Conditions is the list of conditions for this BackupConfig. Typical
+                  condition types: "Ready", "CredentialsValid".
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              managedPVCs:
+                description: |-
+                  ManagedPVCs is the number of PVCs the controller currently has a
+                  backup CronJob for.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: |-
+                  ObservedGeneration matches BackupConfig.metadata.generation when the
+                  status was last updated.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -126,6 +127,25 @@ func subMain() error {
 		}
 		if err := controller.SetupRWXVolumeSnapshotReconciler(mgr, client, apiReader); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "RWXVolumeSnapshot")
+			return err
+		}
+	}
+
+	if config.enableBackup {
+		ns := config.controllerNamespace
+		if ns == "" {
+			ns = os.Getenv("POD_NAMESPACE")
+		}
+		if ns == "" {
+			setupLog.Error(nil, "backup controllers require --controller-namespace or POD_NAMESPACE to be set")
+			return fmt.Errorf("controller namespace is required when --enable-backup is set")
+		}
+		err := controller.SetupBackupReconcilers(
+			mgr, client, apiReader, ns,
+			config.resticImage, config.backupMoverServiceAccount,
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to create controllers", "controller", "Backup")
 			return err
 		}
 	}

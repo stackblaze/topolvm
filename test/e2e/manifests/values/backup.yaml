@@ -1,0 +1,3 @@
+controller:
+  backup:
+    enabled: true

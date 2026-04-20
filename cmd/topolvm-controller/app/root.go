@@ -51,6 +51,10 @@ var config struct {
 	profilingBindAddress        string
 	enableRWX                   bool
 	rwxGaneshaImage             string
+	enableBackup                bool
+	resticImage                 string
+	backupMoverServiceAccount   string
+	controllerNamespace         string
 }
 
 var rootCmd = &cobra.Command{
@@ -95,6 +99,10 @@ func init() {
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 	fs.BoolVar(&config.enableRWX, "enable-rwx", false, "Enable the NFS-backed ReadWriteMany flow. Requires csi-driver-nfs in the cluster.")
 	fs.StringVar(&config.rwxGaneshaImage, "rwx-ganesha-image", "", "Container image for the per-volume NFS server. Empty uses the default.")
+	fs.BoolVar(&config.enableBackup, "enable-backup", false, "Enable BackupConfig/PVCBackup/Restore controllers for restic-based backup to S3.")
+	fs.StringVar(&config.resticImage, "restic-image", topolvm.DefaultResticImage, "Container image used for backup/restore mover Jobs.")
+	fs.StringVar(&config.backupMoverServiceAccount, "backup-mover-service-account", "default", "ServiceAccount used by backup/restore Jobs in each target namespace.")
+	fs.StringVar(&config.controllerNamespace, "controller-namespace", "", "Namespace where the topolvm-controller runs and where backup Secrets are sourced. Defaults to POD_NAMESPACE env var.")
 
 	driver.QuantityVar(fs, &config.controllerServerSettings.Block,
 		"minimum-allocation-block",

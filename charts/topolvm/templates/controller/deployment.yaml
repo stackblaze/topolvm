@@ -78,8 +78,16 @@ spec:
             - --rwx-ganesha-image={{ .Values.controller.rwx.ganeshaImage }}
             {{- end }}
             {{- end }}
-          {{- if or .Values.useLegacy .Values.env.topolvm_controller }}
+            {{- if .Values.controller.backup.enabled }}
+            - --enable-backup
+            - --restic-image={{ .Values.controller.backup.resticImage }}
+            - --backup-mover-service-account={{ .Values.controller.backup.moverServiceAccount }}
+            {{- end }}
           env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             {{- if .Values.useLegacy }}
             - name: USE_LEGACY
               value: "true"
@@ -87,7 +95,6 @@ spec:
             {{- with .Values.env.topolvm_controller }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- end }}
           {{- with .Values.controller.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}

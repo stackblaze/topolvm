@@ -1,0 +1,261 @@
+{{ if not .Values.useLegacy }}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: pvcbackups.topolvm.io
+spec:
+  group: topolvm.io
+  names:
+    kind: PVCBackup
+    listKind: PVCBackupList
+    plural: pvcbackups
+    shortNames:
+    - pvcbk
+    singular: pvcbackup
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.pvcName
+      name: PVC
+      type: string
+    - jsonPath: .spec.schedule
+      name: Schedule
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.lastSyncTime
+      name: LastSync
+      type: date
+    - jsonPath: .status.nextSyncTime
+      name: NextSync
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          PVCBackup represents an ongoing backup policy for a single PVC. The
+          controller evaluates .spec.schedule in-process, takes a VolumeSnapshot at
+          each fire time, provisions a temp PVC from the snapshot, runs a restic
+          mover Job against it, and cleans up the temp PVC (and optionally the
+          VolumeSnapshot). All child resources are owned by the PVCBackup so
+          deleting it cascades cleanly.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              PVCBackupSpec defines the backup policy for a single PVC. The object is
+              typically owned by a BackupConfig reconciler that creates/updates one
+              PVCBackup per matching PVC, but users may also author PVCBackup objects
+              directly for one-off or bespoke schedules.
+            properties:
+              keepSnapshotAfterBackup:
+                description: |-
+                  KeepSnapshotAfterBackup leaves the VolumeSnapshot in place after the
+                  mover completes. The temp PVC is always deleted.
+                type: boolean
+              pvcName:
+                description: |-
+                  PVCName is the name of the source PersistentVolumeClaim in the same
+                  namespace as this PVCBackup.
+                type: string
+              retention:
+                description: |-
+                  Retention is the restic forget policy applied after each successful
+                  backup.
+                properties:
+                  keepDaily:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepHourly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepLast:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepMonthly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepWeekly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  keepYearly:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              schedule:
+                description: |-
+                  Schedule is a cron expression evaluated in-process by the controller.
+                  Empty disables scheduling; the controller will not take backups.
+                type: string
+              suspend:
+                description: |-
+                  Suspend pauses new backup runs without affecting the current run or
+                  existing restic data.
+                type: boolean
+              trigger:
+                description: |-
+                  Trigger forces a one-shot run. Setting this to a new value that
+                  differs from status.lastHandledTrigger causes the controller to run a
+                  backup immediately, regardless of the schedule. A common pattern is
+                  to set it to a timestamp. Empty means no manual trigger.
+                type: string
+              volumeSnapshotClassName:
+                description: |-
+                  VolumeSnapshotClassName is the VolumeSnapshotClass used for the
+                  backup snapshot. If empty the default class for the PVC's driver is
+                  used.
+                type: string
+            required:
+            - pvcName
+            type: object
+          status:
+            description: PVCBackupStatus reports the observed state of a PVCBackup.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentMoverJobName:
+                type: string
+              currentRunStartTime:
+                description: |-
+                  CurrentRunStartTime is the .metadata.creationTimestamp of the in-flight
+                  VolumeSnapshot/temp PVC/mover Job, if any. Nil when phase=Idle|Synced|Failed.
+                format: date-time
+                type: string
+              currentSnapshotName:
+                description: |-
+                  CurrentSnapshotName, CurrentTempPVCName, CurrentMoverJobName track
+                  the child resources owned by this PVCBackup during an active run.
+                type: string
+              currentTempPVCName:
+                type: string
+              lastHandledTrigger:
+                description: |-
+                  LastHandledTrigger mirrors .spec.trigger the last time a manual run
+                  was accepted, so repeated reconciles of the same trigger value don't
+                  retrigger backups.
+                type: string
+              lastSyncDuration:
+                description: LastSyncDuration is how long the most recent successful
+                  backup took.
+                type: string
+              lastSyncTime:
+                description: LastSyncTime is when the most recent backup completed
+                  successfully.
+                format: date-time
+                type: string
+              latestMoverStatus:
+                description: LatestMoverStatus mirrors the final state of the most
+                  recently completed mover Job.
+                properties:
+                  jobName:
+                    type: string
+                  logs:
+                    type: string
+                  succeeded:
+                    type: boolean
+                type: object
+              message:
+                type: string
+              nextSyncTime:
+                description: NextSyncTime is the next scheduled fire time based on
+                  .spec.schedule.
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                description: PVCBackupPhase is the high-level phase of a PVCBackup
+                  reconciliation.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+{{ end }}

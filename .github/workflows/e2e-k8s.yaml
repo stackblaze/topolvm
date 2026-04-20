@@ -76,3 +76,22 @@ jobs:
       rwx_enabled: "1"
       kubernetes_versions: '["1.34.3"]'
       ginkgo_flags: "--focus=rwx"
+
+  backup:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    # Skip on forks: PRs from forks cannot access repo secrets, so the backup
+    # job would always skip. Running only on same-repo events avoids the noise.
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    with:
+      test_scheduler_extender_type: "daemonset"
+      test_legacy: "false"
+      backup_enabled: "1"
+      kubernetes_versions: '["1.34.3"]'
+      ginkgo_flags: "--focus=backup"
+    secrets:
+      BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+      BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+      BACKUP_S3_ACCESS_KEY: ${{ secrets.BACKUP_S3_ACCESS_KEY }}
+      BACKUP_S3_SECRET_KEY: ${{ secrets.BACKUP_S3_SECRET_KEY }}
+      BACKUP_RESTIC_PASSWORD: ${{ secrets.BACKUP_RESTIC_PASSWORD }}
