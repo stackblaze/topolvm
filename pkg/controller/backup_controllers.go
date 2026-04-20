@@ -19,7 +19,9 @@ func SetupBackupReconcilers(
 	apiReader client.Reader,
 	controllerNamespace, resticImage, moverServiceAccountName string,
 ) error {
-	bc := internalController.NewBackupConfigReconciler(c, apiReader, controllerNamespace, resticImage, moverServiceAccountName)
+	bc := internalController.NewBackupConfigReconciler(
+		c, apiReader, controllerNamespace, resticImage, moverServiceAccountName,
+	)
 	if err := bc.SetupWithManager(mgr); err != nil {
 		return err
 	}
@@ -29,6 +31,9 @@ func SetupBackupReconcilers(
 		return err
 	}
 
-	rs := internalController.NewRestoreReconciler(c, apiReader, bc.LoadSingleton, controllerNamespace, resticImage, moverServiceAccountName)
+	rs := internalController.NewRestoreReconciler(
+		c, apiReader, bc.LoadSingleton,
+		controllerNamespace, resticImage, moverServiceAccountName,
+	)
 	return rs.SetupWithManager(mgr)
 }

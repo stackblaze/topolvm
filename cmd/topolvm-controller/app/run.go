@@ -140,7 +140,11 @@ func subMain() error {
 			setupLog.Error(nil, "backup controllers require --controller-namespace or POD_NAMESPACE to be set")
 			return fmt.Errorf("controller namespace is required when --enable-backup is set")
 		}
-		if err := controller.SetupBackupReconcilers(mgr, client, apiReader, ns, config.resticImage, config.backupMoverServiceAccount); err != nil {
+		err := controller.SetupBackupReconcilers(
+			mgr, client, apiReader, ns,
+			config.resticImage, config.backupMoverServiceAccount,
+		)
+		if err != nil {
 			setupLog.Error(err, "unable to create controllers", "controller", "Backup")
 			return err
 		}

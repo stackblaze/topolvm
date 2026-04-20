@@ -189,9 +189,9 @@ func (r *PVCBackupReconciler) advance(
 	case topolvmv1.PVCBackupPhaseCloning:
 		return r.advanceCloning(ctx, pb, cfg)
 	case topolvmv1.PVCBackupPhaseMoving:
-		return r.advanceMoving(ctx, pb, cfg)
+		return r.advanceMoving(ctx, pb)
 	case topolvmv1.PVCBackupPhaseCleanup:
-		return r.advanceCleanup(ctx, pb, cfg)
+		return r.advanceCleanup(ctx, pb)
 	}
 	return ctrl.Result{}, nil
 }
@@ -264,7 +264,6 @@ func (r *PVCBackupReconciler) advanceCloning(
 func (r *PVCBackupReconciler) advanceMoving(
 	ctx context.Context,
 	pb *topolvmv1.PVCBackup,
-	cfg backup.RuntimeConfig,
 ) (ctrl.Result, error) {
 	job := &batchv1.Job{}
 	err := r.client.Get(ctx, client.ObjectKey{Namespace: pb.Namespace, Name: pb.Status.CurrentMoverJobName}, job)
@@ -301,7 +300,6 @@ func (r *PVCBackupReconciler) advanceMoving(
 func (r *PVCBackupReconciler) advanceCleanup(
 	ctx context.Context,
 	pb *topolvmv1.PVCBackup,
-	cfg backup.RuntimeConfig,
 ) (ctrl.Result, error) {
 	// Always delete the temp PVC. Delete the mover Job so a subsequent run
 	// can reuse the deterministic name for Cleanup diagnostics — the user
@@ -412,7 +410,7 @@ func nextFireTime(pb *topolvmv1.PVCBackup, now time.Time) time.Time {
 		return time.Time{}
 	}
 	anchor := pb.CreationTimestamp.Time
-	if pb.Status.LastSyncTime != nil && pb.Status.LastSyncTime.Time.After(anchor) {
+	if pb.Status.LastSyncTime != nil && pb.Status.LastSyncTime.After(anchor) {
 		anchor = pb.Status.LastSyncTime.Time
 	}
 	next := schedule.Next(anchor)

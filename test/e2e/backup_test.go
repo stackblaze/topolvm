@@ -92,7 +92,11 @@ func dumpBackupDiagnostics(ns string) {
 		{"get", "events", "-n", ns, "--sort-by=.metadata.creationTimestamp"},
 		{"get", "backupconfig"},
 		{"get", "pods", "-n", backupControllerNS},
-		{"logs", "-n", backupControllerNS, "-l", "app.kubernetes.io/component=controller", "-c", "topolvm-controller", "--tail=300"},
+		{
+			"logs", "-n", backupControllerNS,
+			"-l", "app.kubernetes.io/component=controller",
+			"-c", "topolvm-controller", "--tail=300",
+		},
 	} {
 		out, err := kubectl(cmd...)
 		logf("\n--- kubectl %v ---\n", cmd)
@@ -150,7 +154,10 @@ func testBackup() {
 
 	It("backs up a PVC to restic and restores it into a fresh PVC", func() {
 		By("creating S3 + restic password Secrets in the controller namespace")
-		s3Yaml := fmt.Sprintf(backupS3CredsSecretYAML, backupS3CredsSecret, backupControllerNS, bkpEnv.accessKey, bkpEnv.secretKey)
+		s3Yaml := fmt.Sprintf(backupS3CredsSecretYAML,
+			backupS3CredsSecret, backupControllerNS,
+			bkpEnv.accessKey, bkpEnv.secretKey,
+		)
 		_, err := kubectlWithInput([]byte(s3Yaml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
