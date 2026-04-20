@@ -12,10 +12,10 @@ import (
 type RestorePhase string
 
 const (
-	RestorePhasePending    RestorePhase = "Pending"
-	RestorePhaseRunning    RestorePhase = "Running"
-	RestorePhaseSucceeded  RestorePhase = "Succeeded"
-	RestorePhaseFailed     RestorePhase = "Failed"
+	RestorePhasePending   RestorePhase = "Pending"
+	RestorePhaseRunning   RestorePhase = "Running"
+	RestorePhaseSucceeded RestorePhase = "Succeeded"
+	RestorePhaseFailed    RestorePhase = "Failed"
 )
 
 // RestoreSpec defines a single restore operation from a restic repository
