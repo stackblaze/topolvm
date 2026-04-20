@@ -33,7 +33,7 @@ func TestBuildPVCBackup_UsesGlobalDefaults(t *testing.T) {
 		Spec: topolvmv1.BackupConfigSpec{
 			Schedule: "0 2 * * *",
 			Retention: topolvmv1.RetentionSpec{
-				KeepDaily: 7,
+				KeepDaily:  7,
 				KeepWeekly: 4,
 			},
 			KeepSnapshotAfterBackup: false,
@@ -76,10 +76,10 @@ func TestBuildPVCBackup_AnnotationsOverrideDefaults(t *testing.T) {
 			Namespace: "app",
 			Name:      "critical",
 			Annotations: map[string]string{
-				topolvm.BackupScheduleAnnotation:        "*/15 * * * *",
-				topolvm.BackupRetentionDailyAnnotation:  "30",
+				topolvm.BackupScheduleAnnotation:         "*/15 * * * *",
+				topolvm.BackupRetentionDailyAnnotation:   "30",
 				topolvm.BackupRetentionMonthlyAnnotation: "12",
-				topolvm.BackupKeepSnapshotAnnotation:    "true",
+				topolvm.BackupKeepSnapshotAnnotation:     "true",
 			},
 		},
 	}
@@ -138,7 +138,7 @@ func TestPVCMatches_SkipAnnotation(t *testing.T) {
 
 func TestPVCMatches_SkipsNonTopoLVMStorageClass(t *testing.T) {
 	sc := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{Name: "ebs"},
+		ObjectMeta:  metav1.ObjectMeta{Name: "ebs"},
 		Provisioner: "ebs.csi.aws.com",
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(sc).Build()
@@ -159,7 +159,7 @@ func TestPVCMatches_SkipsNonTopoLVMStorageClass(t *testing.T) {
 
 func TestPVCMatches_SelectorRespected(t *testing.T) {
 	sc := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{Name: "topolvm"},
+		ObjectMeta:  metav1.ObjectMeta{Name: "topolvm"},
 		Provisioner: topolvm.GetPluginName(),
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(sc).Build()
@@ -187,8 +187,8 @@ func TestPVCMatches_SelectorRespected(t *testing.T) {
 
 func TestPVCBackupSpecEqual(t *testing.T) {
 	a := topolvmv1.PVCBackupSpec{
-		PVCName:  "data",
-		Schedule: "0 * * * *",
+		PVCName:   "data",
+		Schedule:  "0 * * * *",
 		Retention: topolvmv1.RetentionSpec{KeepDaily: 7},
 	}
 	b := a
