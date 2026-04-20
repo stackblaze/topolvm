@@ -7,6 +7,8 @@ TEST_SCHEDULER_EXTENDER_TYPE ?= deployment
 TEST_LEGACY ?= false
 # systemd-service/daemonset/embedded
 TEST_LVMD_TYPE ?= systemd-service
+# 1 to enable RWX tests and install csi-driver-nfs
+RWX_ENABLED ?=
 
 BACKING_STORE := ./build
 BINDIR := $(shell pwd)/bin
@@ -53,6 +55,10 @@ ifeq ($(TEST_LVMD_TYPE),systemd-service)
 HELM_VALUES_FILES += manifests/values/systemd-service-lvmd.yaml
 else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
+endif
+
+ifeq ($(RWX_ENABLED),1)
+HELM_VALUES_FILES += manifests/values/rwx.yaml
 endif
 
 ifeq ($(shell [ $(STORAGE_CAPACITY) = "true" ] && [ $(KUBERNETES_MINOR) -ge 33 ] && echo yes),yes)
@@ -308,6 +314,23 @@ common/setup-components: $(HELM) $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
+ifeq ($(RWX_ENABLED),1)
+	@echo "===== RWX: installing csi-driver-nfs ($(CSI_DRIVER_NFS_VERSION)) ====="
+	$(HELM) repo add csi-driver-nfs https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+	$(HELM) repo update
+	$(HELM) install csi-driver-nfs csi-driver-nfs/csi-driver-nfs --namespace kube-system --version $(CSI_DRIVER_NFS_VERSION)
+	@echo "===== RWX: waiting for csi-driver-nfs controller ====="
+	$(KUBECTL) -n kube-system wait --for=condition=available --timeout=180s deployment/csi-nfs-controller
+	@echo "===== RWX: waiting for csi-driver-nfs node daemonset ====="
+	$(KUBECTL) -n kube-system rollout status --timeout=180s daemonset/csi-nfs-node
+	@echo "===== RWX: csi-driver-nfs ready ====="
+	$(KUBECTL) -n kube-system get pods -l app=csi-nfs-controller -o wide
+	$(KUBECTL) -n kube-system get pods -l app=csi-nfs-node -o wide
+	$(KUBECTL) get csidrivers
+	$(KUBECTL) get sc
+	@echo "===== RWX: verifying topolvm-provisioner-rwx StorageClass exists ====="
+	$(KUBECTL) get sc topolvm-provisioner-rwx -o yaml
+endif
 
 .PHONY: common/test
 common/test: $(GINKGO)
@@ -318,4 +341,5 @@ common/test: $(GINKGO)
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	STORAGE_CAPACITY_SCORING=$(STORAGE_CAPACITY_SCORING) \
 	USE_LEGACY=$(USE_LEGACY) \
+	RWX_ENABLED=$(RWX_ENABLED) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .

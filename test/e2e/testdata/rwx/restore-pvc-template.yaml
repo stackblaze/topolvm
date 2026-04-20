@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: %s
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: topolvm-provisioner-rwx
+  resources:
+    requests:
+      storage: %dMi
+  dataSource:
+    name: %s
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io

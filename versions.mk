@@ -9,6 +9,8 @@ CHART_TESTING_VERSION := 3.14.0
 CNI_PLUGINS_VERSION := v1.9.0
 # https://github.com/GoogleContainerTools/container-structure-test/releases
 CONTAINER_STRUCTURE_TEST_VERSION := 1.22.0
+# https://github.com/kubernetes-csi/csi-driver-nfs/releases
+CSI_DRIVER_NFS_VERSION := v4.11.0
 # https://github.com/Mirantis/cri-dockerd/releases
 CRI_DOCKERD_VERSION := v0.3.21
 # https://github.com/kubernetes-sigs/cri-tools/releases

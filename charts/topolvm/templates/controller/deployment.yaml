@@ -72,6 +72,12 @@ spec:
             {{- if .Values.controller.profiling.bindAddress }}
             - --profiling-bind-address={{ .Values.controller.profiling.bindAddress }}
             {{- end }}
+            {{- if .Values.controller.rwx.enabled }}
+            - --enable-rwx
+            {{- if .Values.controller.rwx.ganeshaImage }}
+            - --rwx-ganesha-image={{ .Values.controller.rwx.ganeshaImage }}
+            {{- end }}
+            {{- end }}
           {{- if or .Values.useLegacy .Values.env.topolvm_controller }}
           env:
             {{- if .Values.useLegacy }}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
@@ -41,6 +42,7 @@ func init() {
 
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	utilruntime.Must(topolvmlegacyv1.AddToScheme(scheme))
+	utilruntime.Must(snapshotv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -114,6 +116,18 @@ func subMain() error {
 	if err := controller.SetupPersistentVolumeClaimReconciler(mgr, client, apiReader); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
 		return err
+	}
+
+	if config.enableRWX {
+		err := controller.SetupRWXPersistentVolumeClaimReconciler(mgr, client, apiReader, config.rwxGaneshaImage)
+		if err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "RWXPersistentVolumeClaim")
+			return err
+		}
+		if err := controller.SetupRWXVolumeSnapshotReconciler(mgr, client, apiReader); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "RWXVolumeSnapshot")
+			return err
+		}
 	}
 
 	//+kubebuilder:scaffold:builder

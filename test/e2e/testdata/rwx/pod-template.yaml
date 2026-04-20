@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: %s
+spec:
+  containers:
+    - name: ubuntu
+      image: ubuntu:22.04
+      command:
+        - bash
+        - -c
+        - |
+          sleep inf &
+          trap "kill -SIGTERM $!" SIGTERM
+          wait $!
+          exit
+      volumeMounts:
+        - mountPath: /shared
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: %s
+  nodeSelector:
+    kubernetes.io/hostname: %s

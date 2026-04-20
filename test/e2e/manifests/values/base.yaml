@@ -134,6 +134,15 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "volume-health"
+  - name: topolvm-provisioner-rwx
+    storageClass:
+      provisioner: topolvm.io/rwx
+      isDefaultClass: false
+      volumeBindingMode: Immediate
+      allowVolumeExpansion: true
+      additionalParameters:
+        topolvm.io/access-mode: rwx
+        topolvm.io/backing-storage-class: topolvm-provisioner-thin
 
 cert-manager:
   enabled: true
